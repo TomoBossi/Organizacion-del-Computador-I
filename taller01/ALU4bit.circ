@@ -755,9 +755,9 @@
     <wire from="(550,280)" to="(560,280)"/>
     <wire from="(610,260)" to="(620,260)"/>
   </circuit>
-  <circuit name="a_mayor_b_sin_signo">
+  <circuit name="a_mayor_b_sin_signo_4">
     <a name="appearance" val="logisim_evolution"/>
-    <a name="circuit" val="a_mayor_b_sin_signo"/>
+    <a name="circuit" val="a_mayor_b_sin_signo_4"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
     <comp lib="0" loc="(220,120)" name="Pin">
@@ -886,9 +886,9 @@
     <wire from="(760,350)" to="(770,350)"/>
     <wire from="(820,330)" to="(830,330)"/>
   </circuit>
-  <circuit name="a_mayorigual_b_sin_signo">
+  <circuit name="a_mayorigual_b_sin_signo_4">
     <a name="appearance" val="logisim_evolution"/>
-    <a name="circuit" val="a_mayorigual_b_sin_signo"/>
+    <a name="circuit" val="a_mayorigual_b_sin_signo_4"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
     <comp lib="0" loc="(140,70)" name="Pin">
@@ -909,7 +909,7 @@
     </comp>
     <comp lib="1" loc="(520,90)" name="OR Gate"/>
     <comp loc="(440,130)" name="igualdad_4"/>
-    <comp loc="(440,70)" name="a_mayor_b_sin_signo"/>
+    <comp loc="(440,70)" name="a_mayor_b_sin_signo_4"/>
     <wire from="(140,70)" to="(190,70)"/>
     <wire from="(140,90)" to="(180,90)"/>
     <wire from="(180,150)" to="(220,150)"/>
@@ -970,7 +970,7 @@
     <comp loc="(680,280)" name="inversor_4"/>
     <comp loc="(680,510)" name="igualdad_4"/>
     <comp loc="(680,580)" name="comparador_cero_4"/>
-    <comp loc="(730,370)" name="a_mayor_b_sin_signo"/>
+    <comp loc="(730,370)" name="a_mayor_b_sin_signo_4"/>
     <wire from="(1010,530)" to="(1020,530)"/>
     <wire from="(1020,430)" to="(1020,530)"/>
     <wire from="(1020,430)" to="(1030,430)"/>
