@@ -787,13 +787,13 @@
     <wire from="(500,270)" to="(540,270)"/>
     <wire from="(510,280)" to="(510,310)"/>
     <wire from="(510,280)" to="(540,280)"/>
-    <wire from="(510,310)" to="(510,320)"/>
-    <wire from="(510,320)" to="(510,330)"/>
-    <wire from="(510,320)" to="(540,320)"/>
-    <wire from="(510,330)" to="(540,330)"/>
     <wire from="(520,260)" to="(520,310)"/>
     <wire from="(520,260)" to="(540,260)"/>
+    <wire from="(520,310)" to="(520,320)"/>
     <wire from="(520,310)" to="(540,310)"/>
+    <wire from="(520,320)" to="(520,330)"/>
+    <wire from="(520,320)" to="(540,320)"/>
+    <wire from="(520,330)" to="(540,330)"/>
     <wire from="(530,250)" to="(530,300)"/>
     <wire from="(530,250)" to="(540,250)"/>
     <wire from="(530,300)" to="(540,300)"/>
@@ -892,6 +892,59 @@
     <wire from="(350,320)" to="(360,320)"/>
     <wire from="(380,310)" to="(390,310)"/>
     <wire from="(400,320)" to="(400,420)"/>
+  </circuit>
+  <circuit name="reg_bidireccional_4_E19">
+    <a name="appearance" val="logisim_evolution"/>
+    <a name="circuit" val="reg_bidireccional_4_E19"/>
+    <a name="circuitnamedboxfixedsize" val="true"/>
+    <a name="simulationFrequency" val="1.0"/>
+    <comp lib="0" loc="(370,180)" name="Pin">
+      <a name="appearance" val="classic"/>
+      <a name="label" val="in_4"/>
+      <a name="width" val="4"/>
+    </comp>
+    <comp lib="0" loc="(370,280)" name="Pin">
+      <a name="appearance" val="classic"/>
+      <a name="label" val="load"/>
+    </comp>
+    <comp lib="0" loc="(370,320)" name="Pin">
+      <a name="appearance" val="classic"/>
+      <a name="label" val="read"/>
+    </comp>
+    <comp lib="0" loc="(400,190)" name="Splitter">
+      <a name="appear" val="right"/>
+      <a name="fanout" val="4"/>
+      <a name="incoming" val="4"/>
+      <a name="spacing" val="2"/>
+    </comp>
+    <comp lib="0" loc="(660,190)" name="Splitter">
+      <a name="facing" val="west"/>
+      <a name="fanout" val="4"/>
+      <a name="incoming" val="4"/>
+      <a name="spacing" val="2"/>
+    </comp>
+    <comp lib="0" loc="(690,180)" name="Pin">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+      <a name="output" val="true"/>
+      <a name="width" val="4"/>
+    </comp>
+    <comp lib="1" loc="(400,180)" name="Controlled Buffer">
+      <a name="width" val="4"/>
+    </comp>
+    <comp lib="1" loc="(680,180)" name="Controlled Buffer">
+      <a name="width" val="4"/>
+    </comp>
+    <comp loc="(640,200)" name="reg_4_E16"/>
+    <wire from="(370,180)" to="(380,180)"/>
+    <wire from="(370,280)" to="(390,280)"/>
+    <wire from="(370,320)" to="(670,320)"/>
+    <wire from="(390,190)" to="(390,280)"/>
+    <wire from="(390,280)" to="(420,280)"/>
+    <wire from="(400,180)" to="(400,190)"/>
+    <wire from="(660,180)" to="(660,190)"/>
+    <wire from="(670,190)" to="(670,320)"/>
+    <wire from="(680,180)" to="(690,180)"/>
   </circuit>
   <circuit name="ALU_reg_4_E20">
     <a name="appearance" val="logisim_evolution"/>
