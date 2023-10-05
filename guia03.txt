@@ -1,0 +1,253 @@
+1.a.
+while n > 0 do
+    res := res + res;
+    n := n - 1;
+endwhile;
+return res;
+
+while R1 > 0 do
+    R0 := R0 + R0;
+    R1 := R1 - 1;
+endwhile;
+return R0;
+
+1.b,c.
+lshift: CMP R1, 0
+        JE fin
+        ADD R0, R0
+        SUB R1, 1
+        JMP loop
+fin:    RET /* Duda: ¿Uso correcto de RET? ¿Implica que es una "subrutina" llamada desde otro lado? ¿Qué pasa con SP si no? */
+
+2.
+max := v[0];
+min := v[0];
+i := 1;
+while i < |v| do
+    if v[i] > max then do
+        max := v[i];
+    endif;
+    if v[i] < min then do
+        min := v[i];
+    endif;
+    i := i + 1;
+endwhile;
+return max, min;
+
+R2 := [R0];
+R3 := [R0];
+R4 := 1;
+while R4 < R1 do
+    if [R4 + R0] > R2 then do
+        R2 := [R4 + R0];
+    endif;
+    if [R4 + R0] < R3 then do
+        R3 := [R4 + R0];
+    endif;
+    R4 := R4 + 1;
+endwhile;
+return R2, R3;
+
+max_min:  MOV R2, [R0]
+          MOV R3, [R0]
+          MOV R4, 0x0001 ;i
+loop:     CMP R1 R4
+          JE fin
+          CMP [R4 + R0], R2 /* Duda: ¿Puedo tratar a R0 como cte.? */
+          JLE if_2
+          MOV R2, [R4 + R0]
+if_2:     CMP [R4 + R0], R3
+          JGE fin_if_2
+          MOV R3, [R4 + R0]
+fin_if_2: ADD R4, 0x0001 ;i := i + 1
+          JMP loop
+fin:      RET
+
+/* Si no puedo tratar a R0 como cte., entonces... */
+max_min:  MOV R2, [R0]
+          MOV R3, [R0]
+          MOV R4, 0x0001 ;i
+loop:     CMP R1 R4
+          JE fin
+
+          MOV R5, 0x0000
+          ADD R5, R4
+          ADD R5, R0
+
+          CMP [R5], R2 /* Duda: ¿Puedo tratar a R0 como cte.? */
+          JLE if_2
+          MOV R2, [R5]
+if_2:     CMP [R5], R3
+          JGE fin_if_2
+          MOV R3, [R5]
+fin_if_2: ADD R4, 0x0001 ;i := i + 1
+          JMP loop
+fin:      RET
+
+3.a.
+[R2 + 0] := [R0 + 0] + [R1 + 0] /* ADD */
+[R2 + 1] := [R0 + 1] + [R1 + 1] /* ADDC */
+[R2 + 2] := [R0 + 2] + [R1 + 2] /* ADDC */
+[R2 + 3] := [R0 + 3] + [R1 + 3] /* ADDC */
+
+3.b.
+sm64: MOV R3, [R0 + 0]
+      ADD R3, [R1 + 0]
+      MOV [R2 + 0], R3
+      MOV R3, [R0 + 1]
+      ADDC R3, [R1 + 1]
+      MOV [R2 + 1], R3
+      MOV R3, [R0 + 2]
+      ADDC R3, [R1 + 2]
+      MOV [R2 + 2], R3
+      MOV R3, [R0 + 3]
+      ADDC R3, [R1 + 3]
+      MOV [R2 + 3], R3
+fin:  RET
+
+4.a.
+res := 0;
+i := 0;
+while i < |v| do
+    res := res + v[i];
+    i := i + 1
+endwhile;
+return res;
+
+R3 := 0;
+R4 := R0; /* Duda: Esto es necesario para no pisar registros al llamar a sumar64, ¿no? */
+R5 := R1;
+R6 := 0;
+while R6 < R4 do
+    R0 := R3;
+    R7 := R5 + R6 /* Por las dudas de no poder usar a R6 como cte. */
+    R1 := [R7]
+    sumar64();
+    R3 := R2;
+    R6 := R6 + 1;
+endwhile;
+return R3;
+
+4.b.
+
+
+5.
+main: MOV R0 0x0002
+      MOV R1 0x0020
+      ADD R0 R1
+fin:  RET
+
+6.
+0001 100000 000000 0x00FF "=" MOV R0, 0x00FF
+0001 100001 000000 0x1000 "=" MOV R1, 0x1000
+0010 100000 100001 "=" ADD R0, R1
+
+7.a.
+0x0020
+7.b.
+M[0x0020] = 0x0040 /* Duda: ¿Por qué la distinción entre 0xXXXX e XXXXh? */
+7.c.
+M[M[0x0020]] = M[0x0040] = 0x0060
+7.d.
+0x0030
+7.e.
+M[0x0030] = 0x0050
+7.f.
+M[0x0030 + 0x0020] = M[0x0050] = 0x0070
+
+8.a.
+| PC = 0xA644 | SP = 0xFFEF | R0...R7 = ... | Z = 0 | N = 0 | C = 0 | V = 0 | 
+-> Instrucción [PC] = 0x223D = 0010 0010 0011 1101 = 0010 001000 111101 "=" ADD [c16_1] [R5 + c16_2]
+Requiere 2 palabras más:
+c16_1 = [0xA645] = 0xA639; [0xA639] = 0x5B4C
+c16_2 = [0xA646] = 0x002B; [0xA622 + 0x002B] = [0xA64D] = 0x4AF3
+M[0xA639] = 0x5B4C + 0x4AF3 = 0xA63F | PC = 0xA644 + 3 = 0xA647 | SP = 0xFFEF | R0...R7 = ... | Z = 0 | N = 1 | C = 0 | V = 1 | 
+-> Instrucción [PC] = 0xFAF0 = 1111 1010 1111 0000 = 1111 1010 11110000 "=" JG (PC + 0x00F0)
+
+??? /* Duda: PC salta lejísimos, no puedo seguir la ejecución */
+
+8.b.
+
+8.c.
+
+9.a.
+- JMP Inicio ocupa 2 palabras (Inicio es una dirección de 16 bits) (+2)
+-> Etiqueta "Valor" está en la posición de memoria 0xFF0E + 2 = 0xFF10
+- DW 0A0A ocupa 1 palabra (la constante de 16 bits 0x0A0A) (+3)
+-> Etiqueta "Inicio" está en 0xFF0E + 3 = 0xFF11
+- MOV R0, [Valor] ocupa 2 palabras (R0 es parte del modo de direccionamiento, Valor es dirección de 16 bits) (+5)
+- ADD R0, 0x0003 ocupa 2 palabras (idem. instrucción anterior) (+7)
+- MOV [Valor], R0 ocupa 2 palabras (idem. instrucción anterior) (+9)
+-> Etiqueta "Salida" está en 0xFF0E + 9 = 0xFF17
+- RET ocupa una palabra (+A)
+
+9.b.
+En cuanto a las posiciones de las etiquetas, ninguna. En cualquier caso la instrucción requiere 2 palabras.
+Habría una diferencia en el sentido de que el programa ya no tendría la funcionalidad de incrementar en 3 al valor en posición Valor; 
+pasaría a simplemente guardar el valor 0x0A0A + 0x0003 en Valor.
+
+10.a, b. /* Duda: ¿Este ejercicio es rarísimo o estoy haciendo algo mal? */
+| R0...R7 = 0 | PC = 0 | SP = 0xFFEF | Z = 0 | N = 0 | C = 0 | V = 0 |
+-> Etiqueta "inicio" está en 0x0000
+- MOV R1, [[once]] ocupa 2 palabras (+2)
+| R1 = M[M[once]] = M[M[0x000A]] = M[0x000B] = 0x0004 | R0,R2...R7 = 0 | PC = 2 | SP = 0xFFEF | Z = 0 | N = 0 | C = 0 | V = 0 |
+- ADD [R1], 0x479E ocupa 2 palabras (+4)
+| M[0x0004] = 0x479E + 0x479E = 0x8F3C | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 4 | SP = 0xFFEF | Z = 0 | N = 1 | C = 0 | V = 1 |
+- CMP R1, R2 ocupa 1 palabra (+5)
+| M[0x0004] = 0x8F3C | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 5 | SP = 0xFFEF | Z = 0 | N = 0 | C = 0 | V = 0 |
+- DW 0x0007 ocupa 1 palabra (+6)
+| M[0x0004] = 0x8F3C | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 6 | SP = 0xFFEF | Z = 0 | N = 0 | C = 0 | V = 0 |
+- DW 0xFFEF ocupa 1 palabra (+7)
+| M[0x0004] = 0x8F3C | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 7 | SP = 0xFFEF | Z = 0 | N = 0 | C = 0 | V = 0 |
+-> Etiqueta "rutina" está en 0x0000 + 7 = 0x0007
+- JVS fin ocupa 1 palabra (+8)
+| M[0x0004] = 0x8F3C | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 8 | SP = 0xFFEF | Z = 0 | N = 0 | C = 0 | V = 0 |
+- SUB R1, R2 ocupa 1 palabra (+9)
+| M[0x0004] = 0x8F3C | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 9 | SP = 0xFFEF | Z = 0 | N = 0 | C = 0 | V = 0 |
+-> Etiqueta "fin" está en 0x0000 + 9 = 0x0009
+- RET ocupa 1 palabra (+A)
+| ??? |
+-> Etiqueta "once" está en 0x0000 + A = 0x000A
+- DW 0x000B ocupa 1 palabra (+B)
+| ??? |
+-> Etiqueta "cuatro" está en 0x0000 + B = 0x000B
+- DW 0x0004 ocupa 1 palabra (+C)
+| ??? |
+
+11.a, b, d.
+El programa pretende guardar en R2 a la cantidad de apariciones en el vector del valor almacenado en Clave (y posteriormente R1).
+Como el programa detiene su ejecución (salta a Fin) al encontrarse con el valor 0, no hará lo esperado para cualquier vector que incluya al valor 0x0000 seguido (en cualquier posición subsiguiente) del valor [Clave].
+-> Etiqueta "Vector" está en 0x0100
+- DW ... x10 ocupan 10 palabras (+A) /* Vector */
+- DW 0x0000 ocupa 1 palabra (+B) /* Explicita final del vector */
+-> Etiqueta "Clave" está en 0x0100 + 0x000B = 0x010B
+- DW ... ocupa 1 palabra (+C) /* Valor de interés */
+-> Etiqueta "Comienzo" está en 0x0100 + 0x000C = 0x010C
+- MOV R0, Vector ocupa 2 palabras (+E) /* Guarda en R0 a la posición inicial del vector en la memoria */
+- MOV R1, [Clave] ocupa 2 palabras (+10) /* Guarda en R1 al valor de interés */
+- MOV R2, 0 ocupa 2 palabras (+12) /* Inicializa el resultado final en 0 */
+-> Etiqueta "Ciclo" está en 0x0100 + 0x0012 = 0x0112
+- MOV R3, [R0] ocupa 1 palabra (+13) /* Guarda en R3 al valor en posición actual del vector */
+- CMP R3, 0 ocupa 2 palabras (+15) /* Se fija si el valor en posición actual del vector es 0 */
+- JE Fin ocupa 1 palabra ("Fin" en realidad es el desplazamiento en 8 bits hasta la etiqueta "Fin") (+16) /* Si es 0, el programa termina */
+- CMP R3, R1 ocupa 1 palabra (+17) /* Si no es 0 sigue, y lo compara con R1 ([Clave]) */
+- JE Sumo ocupa 1 palabra (+18) /* Si R3 y R1 ([Clave]) son iguales, ejecuta el bloque condicional para sumar 1 a R2 */
+-> Etiqueta "Sigo" está en 0x0100 + 0x0018 = 0x0118
+- ADD R0, 1 ocupa 2 palabras (+1A) /* Si no son iguales o si ya se realizó el incremento de R2, incrementa la posición actual del vector... */
+- JMP Ciclo ocupa 2 palabras (+1C) /* ...y vuelve al comienzo del ciclo */
+-> Etiqueta "Sumo" está en 0x0100 + 0x001C = 0x011C
+- ADD R2, 1 ocupa 2 palabras (+1E) /* Incrementa el resultado */
+- JMP Sigo ocupa 2 palabras (+20) /* Vuelve atrás para incrementar la posición actual del vector y volver a ciclar */
+-> Etiqueta "Fin" está en 0x0100 + 0x0020 = 0x0120
+- RET ocupa una palabra (+21)
+
+11.c.
+i := 0;
+res := 0;
+while (v[i] != 0) do /* v == [v1, v2, ..., v10, 0] */
+    if (v[i] == k) then do
+        res := res + 1;
+    endif;
+    i := i + 1;
+endwhile;
+return res;
