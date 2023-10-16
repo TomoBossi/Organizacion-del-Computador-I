@@ -16,8 +16,8 @@ lshift: CMP R1, 0
         JE fin
         ADD R0, R0
         SUB R1, 1
-        JMP loop
-fin:    RET /* Duda: ¿Uso correcto de RET? ¿Implica que es una "subrutina" llamada desde otro lado? ¿Qué pasa con SP si no? */
+        JMP lshift
+fin:    RET
 
 2.
 max := v[0];
@@ -69,12 +69,10 @@ max_min:  MOV R2, [R0]
           MOV R4, 0x0001 ;i
 loop:     CMP R1 R4
           JE fin
-
           MOV R5, 0x0000
           ADD R5, R4
           ADD R5, R0
-
-          CMP [R5], R2 /* Duda: ¿Puedo tratar a R0 como cte.? */
+          CMP [R5], R2
           JLE if_2
           MOV R2, [R5]
 if_2:     CMP [R5], R3
@@ -114,22 +112,38 @@ while i < |v| do
 endwhile;
 return res;
 
-R3 := 0;
-R4 := R0; /* Duda: Esto es necesario para no pisar registros al llamar a sumar64, ¿no? */
-R5 := R1;
-R6 := 0;
-while R6 < R4 do
-    R0 := R3;
-    R7 := R5 + R6 /* Por las dudas de no poder usar a R6 como cte. */
-    R1 := [R7]
+[R3] := 0x0000;
+[R3 + 1] := 0x0000;
+[R3 + 2] := 0x0000;
+[R3 + 3] := 0x0000;
+R4 := R0; /* cantidad de elementos del vector */
+R0 := R1; /* posición de inicio del vector */
+R1 := R3; /* posición de 2do operando para sumar64() */
+R2 := R3; /* posición de memoria para el resultado */
+R5 := 0x0000; /* contador de posiciones del vector */
+while R5 < R4 do
     sumar64();
-    R3 := R2;
-    R6 := R6 + 1;
-endwhile;
-return R3;
+    R0 := R0 + 4;
+    R5 := R5 + 1;
+return [R2..R2 + 4];
 
 4.b.
-
+sv64: MOV [R3], 0x0000
+      MOV [R3 + 1], 0x0000
+      MOV [R3 + 2], 0x0000
+      MOV [R3 + 3], 0x0000
+      MOV R4, R0
+      MOV R0, R1
+      MOV R1, R3
+      MOV R2, R3
+      MOV R5, 0x0000
+loop: CMP R5, R4
+      JE fin
+      CALL sm64
+      ADD R0, 0x0004
+      ADD R5, 0x0001
+      JMP loop
+fin:  RET
 
 5.
 main: MOV R0 0x0002
@@ -156,19 +170,54 @@ M[0x0030] = 0x0050
 M[0x0030 + 0x0020] = M[0x0050] = 0x0070
 
 8.a.
-| PC = 0xA644 | SP = 0xFFEF | R0...R7 = ... | Z = 0 | N = 0 | C = 0 | V = 0 | 
--> Instrucción [PC] = 0x223D = 0010 0010 0011 1101 = 0010 001000 111101 "=" ADD [c16_1] [R5 + c16_2]
+| PC = 0xA644 | SP = 0xFFEF | R0...R7 = ... | Z = 0 | N = 0 | C = 0 | V = 0 |
+- Instrucción [PC] = 0x223D = 0010 0010 0011 1101 = 0010 001000 111101 "=" ADD [c16_1], [R5 + c16_2]
 Requiere 2 palabras más:
 c16_1 = [0xA645] = 0xA639; [0xA639] = 0x5B4C
 c16_2 = [0xA646] = 0x002B; [0xA622 + 0x002B] = [0xA64D] = 0x4AF3
 M[0xA639] = 0x5B4C + 0x4AF3 = 0xA63F | PC = 0xA644 + 3 = 0xA647 | SP = 0xFFEF | R0...R7 = ... | Z = 0 | N = 1 | C = 0 | V = 1 | 
--> Instrucción [PC] = 0xFAF0 = 1111 1010 1111 0000 = 1111 1010 11110000 "=" JG (PC + 0x00F0)
-
-??? /* Duda: PC salta lejísimos, no puedo seguir la ejecución */
+- Instrucción [PC] = 0xFAF0 = 1111 1010 1111 0000 = 1111 1010 11110000 "=" JG 0xF0 (PC "+ 0xF0" "=" PC - 0x10)
+M[0xA639] = 0xA63F | PC = 0xA648 - 0x10 = 0xA638 | SP = 0xFFEF | R0...R7 = ... | Z = 0 | N = 1 | C = 0 | V = 1 | 
+- Instrucción [PC] = 0x5600 = 0101 0110 0000 0000 = 0101 011000 0000000 "=" OR [[c16_1]], c16_2
+Requiere 2 palabras más:
+c16_1 = [0xA639] = 0x5B4C; M[M[0x5B4C]] = M[???]
+c16_2 = [0xA63A] = 0xA4D6
 
 8.b.
+| PC = 0x2532 | SP = 0xFFEF | R0...R7 = ... | Z = 0 | N = 0 | C = 0 | V = 0 |
+- Instrucción [PC] = 0x5D40 = 0101 1101 0100 0000 = 0101 110101 000000 "=" OR [R5], c16
+Requiere una palabra más:
+c16 = [0x2533] = 0x5432;
+M[0x2521] = OR 0xABCD, 0x5432 = OR 1010101111001101, 0101010000110010 = 1111111111111111 = 0xFFFF
+M[0x2521] = 0xFFFF | PC = 0x2534 | SP = 0xFFEF | R0...R7 = ... | Z = 0 | N = 1 | C = 0 | V = 0 |
+- Instrucción [PC] = 0xF205 = 1111 0010 00000101 "=" JLE 0x0005 (PC + 0x0005)
+M[0x2521] = 0xFFFF | PC = 0x253A | SP = 0xFFEF | R0...R7 = ... | Z = 0 | N = 1 | C = 0 | V = 0 |
+- Instrucción [PC] = 0x9200 = 1001 0010 0000 0000 = 1001 001000 000000 "=" NOT [c16]
+Requiere una palabra más:
+c16 = [0x253B] = 0x2524 = 0010 0101 0010 0100; NOT 0x2524 = 1101 1010 1101 1011 = 0xDCDB
+M[0x2521] = 0xFFFF; M[0x253B] = 0xDCDB | PC = 0x253C | SP = 0xFFEF | R0...R7 = ... | Z = 0 | N = 1 | C = 0 | V = 0 |
+- Instrucción [PC] = 0x2624 = 0010 0110 0010 0100 = 0010 011000 100100 "=" ADD [[c16]], R4
+Requiere una palabra más:
+c16 = [0x253D] = 0x2525; M[M[0x2525]] = M[0x253E] = 0x0000
+M[0x2521] = 0xFFFF; M[0x253B] = 0xDCDB; M[0x253E] = 0xE7A0 | PC = 0x253E | SP = 0xFFEF | R0...R7 = ... | Z = 0 | N = 1 | C = 0 | V = 0 |
+- Instrucción [PC] = 0x0000 Operación inválida, fin de la ejecución.
 
 8.c.
+| PC = 0x0358 | SP = 0xFFEF | R0...R7 = ... | Z = 0 | N = 0 | C = 0 | V = 0 |
+- Instrucción [PC] = 0x3621 = 0011 0110 0010 0001 = 0011 011000 100001 "=" SUB [[c16]], R1
+Requiere una palabra más:
+c16 = [0x0359] = 0x0344; M[M[0x0344]] = M[0x0349] = 0x6023
+  0x6023
+- 0xC2A3
+= 0x9D80
+M[0x0349] = 0x5D80 | PC = 0x035A | SP = 0xFFEF | R0...R7 = ... | Z = 0 | N = 1 | C = 0 | V = 1 |
+- Instrucción [PC] = 0xFBEE = 1111 1011 11101110 "=" JGE 0xEE (PC - 0x12)
+M[0x0349] = 0x5D80 | PC = 0x0349 | SP = 0xFFEF | R0...R7 = ... | Z = 0 | N = 1 | C = 0 | V = 1 |
+- Instrucción [PC] = 0x6023 = 0110 0000 0010 0011 = 0110 000000 100011 "=" CMP c16, R3
+Requiere una palabra más:
+c16 = [0x034A] = 0x0000
+M[0x0349] = 0x5D80 | PC = 0x034B | SP = 0xFFEF | R0...R7 = ... | Z = 0 | N = 1 | C = 0 | V = 0 |
+- Instrucción [PC] = 0x0000 Operación inválida, fin de la ejecución.
 
 9.a.
 - JMP Inicio ocupa 2 palabras (Inicio es una dirección de 16 bits) (+2)
@@ -186,33 +235,38 @@ En cuanto a las posiciones de las etiquetas, ninguna. En cualquier caso la instr
 Habría una diferencia en el sentido de que el programa ya no tendría la funcionalidad de incrementar en 3 al valor en posición Valor; 
 pasaría a simplemente guardar el valor 0x0A0A + 0x0003 en Valor.
 
-10.a, b. /* Duda: ¿Este ejercicio es rarísimo o estoy haciendo algo mal? */
-| R0...R7 = 0 | PC = 0 | SP = 0xFFEF | Z = 0 | N = 0 | C = 0 | V = 0 |
+10.a.
 -> Etiqueta "inicio" está en 0x0000
+- MOV R1, [[once]] ocupa 2 palabras (+2)
+- ADD [R1], 0x479E ocupa 2 palabras (+4)
+- CMP R1, R2 ocupa 1 palabra (+5)
+- DW 0x0007 ocupa 1 palabra (+6)
+- DW 0xFFEF ocupa 1 palabra (+7)
+-> Etiqueta "rutina" está en 0x0000 + 7 = 0x0007
+- JVS fin ocupa 1 palabra (+8)
+- SUB R1, R2 ocupa 1 palabra (+9)
+-> Etiqueta "fin" está en 0x0000 + 9 = 0x0009
+- RET ocupa 1 palabra (+A)
+-> Etiqueta "once" está en 0x0000 + A = 0x000A
+- DW 0x000B ocupa 1 palabra (+B)
+-> Etiqueta "cuatro" está en 0x0000 + B = 0x000B
+- DW 0x0004 ocupa 1 palabra (+C)
+
+10.b.
+| R0...R7 = 0 | PC = 0 | SP = 0xFFEF | Z = 0 | N = 0 | C = 0 | V = 0 |
 - MOV R1, [[once]] ocupa 2 palabras (+2)
 | R1 = M[M[once]] = M[M[0x000A]] = M[0x000B] = 0x0004 | R0,R2...R7 = 0 | PC = 2 | SP = 0xFFEF | Z = 0 | N = 0 | C = 0 | V = 0 |
 - ADD [R1], 0x479E ocupa 2 palabras (+4)
-| M[0x0004] = 0x479E + 0x479E = 0x8F3C | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 4 | SP = 0xFFEF | Z = 0 | N = 1 | C = 0 | V = 1 |
-- CMP R1, R2 ocupa 1 palabra (+5)
-| M[0x0004] = 0x8F3C | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 5 | SP = 0xFFEF | Z = 0 | N = 0 | C = 0 | V = 0 |
-- DW 0x0007 ocupa 1 palabra (+6)
-| M[0x0004] = 0x8F3C | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 6 | SP = 0xFFEF | Z = 0 | N = 0 | C = 0 | V = 0 |
-- DW 0xFFEF ocupa 1 palabra (+7)
-| M[0x0004] = 0x8F3C | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 7 | SP = 0xFFEF | Z = 0 | N = 0 | C = 0 | V = 0 |
--> Etiqueta "rutina" está en 0x0000 + 7 = 0x0007
-- JVS fin ocupa 1 palabra (+8)
-| M[0x0004] = 0x8F3C | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 8 | SP = 0xFFEF | Z = 0 | N = 0 | C = 0 | V = 0 |
-- SUB R1, R2 ocupa 1 palabra (+9)
-| M[0x0004] = 0x8F3C | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 9 | SP = 0xFFEF | Z = 0 | N = 0 | C = 0 | V = 0 |
--> Etiqueta "fin" está en 0x0000 + 9 = 0x0009
-- RET ocupa 1 palabra (+A)
-| ??? |
--> Etiqueta "once" está en 0x0000 + A = 0x000A
-- DW 0x000B ocupa 1 palabra (+B)
-| ??? |
--> Etiqueta "cuatro" está en 0x0000 + B = 0x000B
-- DW 0x0004 ocupa 1 palabra (+C)
-| ??? |
+| M[0x0004] = {CMP R1, R2} + 0x479E | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 4 | SP = 0xFFEF |
+| M[0x0004] = 0110 100001 100010 + 0x479E | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 4 | SP = 0xFFEF |
+| M[0x0004] = 0x6862 + 0x479E = 0xB000 | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 4 | SP = 0xFFEF | Z = 0 | N = 1 | C = 0 | V = 1 |
+- 0xB000 = CALL c16 = CALL M[0x0005] = CALL 0x0007 ocupa 2 palabras (+6)
+| M[0x0004] = 0xB000 | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 7 | SP = 0xFFEE, M[SP+1] = 6 | Z = 0 | N = 1 | C = 0 | V = 1 |
+- M[0x0007] = JVS 0x0001
+| M[0x0004] = 0xB000 | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 9 | SP = 0xFFEE, M[SP+1] = 6 | Z = 0 | N = 1 | C = 0 | V = 1 |
+- RET
+| M[0x0004] = 0xB000 | R1 = 0x0004 | R0,R2...R7 = 0 | PC = 6 | SP = 0xFFEF | Z = 0 | N = 1 | C = 0 | V = 1 |
+- M[0x0006] = 0xFFEF Operación inválida, fin de la ejecución.
 
 11.a, b, d.
 El programa pretende guardar en R2 a la cantidad de apariciones en el vector del valor almacenado en Clave (y posteriormente R1).
