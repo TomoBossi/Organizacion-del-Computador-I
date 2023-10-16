@@ -1,0 +1,372 @@
+1. 
+Asumo que ya se realizaron los fetch y decode necesarios,
+y considero que la señal de clk y el apagado de señales está implicito entre microoperaciones.
+Asumo también que el banco de registros permite acceder a los registros dados por IR0[8:6] (índice 0) e IR0[2:0] (índice 1),
+mediante las señales RB_inSelect=0/1 y RB_outSelect=0/1.
+1.a.
+RB_enIn RB_enOut RB_inSelect=0 RB_outSelect=1
+reset_microOp
+
+RTL:
+R0 := R1
+
+1.b.
+RB_enOut ALU_enIn1 RB_outSelect=0
+RB_enOut ALU_enIn2 RB_outSelect=1
+ALU_add
+RB_enIn ALU_enOut RB_inSelect=0
+reset_microOp
+
+RTL:
+ALU_in1 := R0
+ALU_in2 := R1
+ALU_add
+R0 := ALU_out
+
+1.c.
+RB_enOut ALU_enIn1 RB_outSelect=0
+RB_enOut ALU_enIn2 RB_outSelect=1
+ALU_and
+RB_enIn ALU_enOut RB_inSelect=0
+reset_microOp
+
+RTL:
+ALU_in1 := R0
+ALU_in2 := R1
+ALU_and
+R0 := ALU_out
+
+1.d.
+RB_enOut ALU_enIn1 RB_outSelect=0
+ALU_not
+RB_enIn ALU_enOut RB_inSelect=0
+reset_microOp
+
+RTL:
+ALU_in1 := R0
+ALU_not
+R0 := ALU_out
+
+1.e.
+RB_enOut ALU_enIn1 RB_outSelect=0
+ALU_neg
+RB_enIn ALU_enOut RB_inSelect=0
+reset_microOp
+
+RTL:
+ALU_in1 := R0
+ALU_neg
+R0 := ALU_out
+
+2.
+Para poder escribir los microprogramas, sobre las asumpciones ya hechas en 1.,
+tengo que además asumir que existen señales para escribir y leer de MDR (MDR_enIn, MDR_enOut) y escribir a MAR (MAR_enIn),
+y señales para escribir y leer de cada IR (IRX_enIn, IRX_enOut).
+2.a, b.i.
+IR0: 0001 100000 100001
+IR1: XXXX XXXXXX XXXXXX
+IR2: XXXX XXXXXX XXXXXX
+
+RB_enIn RB_enOut RB_inSelect=0 RB_outSelect=1
+reset_microOp
+
+RTL:
+R0 := R1 /* idem 1.a. por ser independiente de la memoria externa */
+
+2.a, b.ii.
+IR0: 0001 100000 000000
+IR1: 0xFF00
+IR2: XXXX XXXXXX XXXXXX
+
+RB_enIn IR1_enOut RB_inSelect=0
+reset_microOp
+
+RTL:
+R0 := IR1
+
+2.a, b.iii.
+IR0: 0001 001000 000000
+IR1: 0xAA00
+IR2: 0xFF00
+
+MAR_enIn IR1_enOut
+MBR_enIn IR2_enOut
+MEM_WRITE
+
+RTL:
+MAR := IR1
+MBR := IR2
+MEM_WRITE
+
+2.a, b.iv.
+IR0: 0001 001000 011000
+IR1: 0xAA00
+IR2: 0xFF00
+
+MAR_enIn IR2_enOut
+MEM_READ
+MAR_enIn MBR_enOut
+MEM_READ
+MAR_enIn IR1_enOut
+MEM_WRITE
+
+RTL:
+MAR := IR2
+MEM_READ
+MAR := MBR
+MEM_READ
+MAR := IR1
+MEM_WRITE
+
+2.a, b.v.
+IR0: 0001 001000 110000
+IR1: 0xAA00
+IR2: XXXX XXXXXX XXXXXX
+
+MAR_enIn RB_enOut RB_outSelect=1
+MEM_READ
+MAR_enIn IR1_enOut
+MEM_WRITE
+
+RTL:
+MAR := R0
+MEM_READ
+MAR := IR1
+MEM_WRITE
+
+2.a, b.vi.
+IR0: 0001 001000 111000
+IR1: 0xAA00
+IR2: 0xFF00
+
+RB_enOut ALU_enIn1 RB_outSelect=1
+IR2_enOut ALU_enIn2
+ALU_add
+IR2_enIn ALU_enOut
+MAR_enIn IR2_enOut
+MEM_READ
+MAR_enIn IR1_enOut
+MEM_WRITE
+
+RTL:
+ALU_in1 := R0
+ALU_in2 := IR2
+ALU_add
+IR2 := ALU_out
+MAR := IR2
+MEM_READ
+MAR := IR1
+MEM_WRITE
+
+3.
+A partir de acá voy a dejar de escribir los microprogramas (salvo que se lo pida explicita o implicitamente), 
+y me voy a reestringir a las microoperaciones en RTL. A eso parece apuntar la guía. 
+3.a.JMP R0. /* absoluto */
+RTL:
+PC := R0
+
+3.b.JE 0xFF. /* relativo */
+RTL:
+IF Z = 1
+    EXT_in := IR0[7:0]
+    SIGN_EXT_on
+    ALU_in1 := PC
+    ALU_in2 := EXT_out
+    ALU_add
+    PC := ALU_out
+
+3.c.JG 0xFF.
+RTL:
+IF !(Z = 1 || ((N = 1 && V = 0) || (N = 0 && V = 1)))
+    EXT_in := IR0[7:0]
+    SIGN_EXT_on
+    ALU_in1 := PC
+    ALU_in2 := EXT_out
+    ALU_add
+    PC := ALU_out
+
+3.d.CALL R0.
+RTL:
+MAR := SP
+MDR := PC
+MEM_WRITE
+ALU_in1 := SP
+ALU_in2 := 0x0001
+ALU_sub
+SP := ALU_out
+PC := R0
+
+3.e.RET.
+RTL:
+ALU_in1 := SP
+ALU_in2 := 0x0001
+ALU_add
+MAR := ALU_out
+MEM_READ
+PC := MDR
+SP := ALU_out
+
+4.a. /* Duda: No sé si el ejercicio se refiere a esto cuando habla de modificar la microarquitectura */
+Código de operación 1110 (libre en cartilla de "Orga 1")
+Instrucción de la forma 1110 ______ 000000 = 0xE__0
+
+4.b.
+A la tabla de microprogramas debería agregarse, con índice asociado al cod. op. 1110, 
+el microprograma definido por las siguientes microoperaciones:
+RTL:
+ALU_in1 := R1
+ALU_in2 := R2
+ALU_add
+R1 := ALU_out
+Z := ALU Z
+N := ALU N
+C := 0
+V := 0
+
+4.c.
+Podría convertirse a la instrucción en una de tipo "sin operandos" (3):
+1110 000000 000000 = 0xE000
+
+5.a.tipo 3 o 4.
+RTL:
+MAR := PC
+MEM_READ
+IR0 := MDR
+ALU_in1 := PC
+ALU_in2 := 0x0001
+ALU_add
+PC := ALU_out
+
+5.b.tipo 2a.
+RTL:
+MAR := PC
+MEM_READ
+IR0 := MDR
+ALU_in1 := PC
+ALU_in2 := 0x0001
+ALU_add
+PC := ALU_out
+IF IR0[11] = 0 || IR0[11:9] = 0x7 /* Duda: No creo que esto sea válido, pero no se me ocurrió cómo evitarlo */
+    MAR := PC
+    MEM_READ
+    IR1 := MDR
+    ALU_in1 := PC
+    ALU_in2 := 0x0001
+    ALU_add
+    PC := ALU_out
+
+6.a. /* Duda: Dudo de todo este ejercicio, a, b y c. No me queda claro del enunciado si AC tiene que ser de 16 bits o debería ser de 12, que es lo que asumí */
+- Bus interno de 12 bits.
+- Registro PC out de 12 bits conectado a bus interno.
+- Memoria de palabras de 16 bits con direccionamiento a palabra, en la que los valores propiamente dichos ocupan los 12 bits menos significativos.
+- Memoria conectada a bus interno mediante bus externo y controlador de bus con MAR de 12 bits (solo entrada, desde bus interno) y MDR de 16 bits inout conectado a bus interno a través de MDR[11:0] (similar a ej. 2).
+- Registro para decoding de instrucciones IR inout de 16 bits conectado a bus interno a través de IR[11:0] y a MDR a través de sus 16 bits.
+- ALU de 12 bits conectada a bus interno, con flags Z, N, V y C seteados según las operaciones en complemento a 2 ADD y SUBT.
+- Registro de propósito general AC inout de 12 bits conectado a bus interno y conectado de forma tal de ser tanto ALU_in1 como ALU_out.
+- Componente que permite introducir un 0x001 en ALU_in2 (similar a ej. 3).
+- Componente que permite incremetar PC de a uno, independiente de la ALU, conectado al registro PC.
+Por conveniencia la sintaxis y semántica de las señales y microoperaciones puede mantenerse idéntica a la de ejercicios anteriores (para la arch. "Orga 1"),
+excepto el componente incrementador de PC que agrega la señal de activación de operación PC_inc y el registro de resultado AUX.
+
+6.b.i.LOAD X.
+RTL:
+MAR := IR[11:0]
+MEM_READ
+AC := MDR[11:0]
+
+6.b.ii.ADD X.
+RTL:
+MAR := IR[11:0]
+MEM_READ
+ALU_in2 := MDR[11:0]
+ALU_add
+
+6.b.iii.JUMP X.
+RTL:
+PC := IR[11:0]
+
+6.b.iv.SKIPCOND.
+RTL:
+IF (IR[11:10] = 00 && N = 1) || (IR[11:10] = 01 && Z = 1) || (IR[11:10] = 10 && !((N = 1 && V = 0) || (N = 0 && V = 1))) /* Duda: idem ej. 5.b. Pienso que esto es algo que se podría construir como componente, en hardware */
+    PC_inc
+    PC := AUX
+    
+6.c.
+Creo que la gracia de este ejercicio es simplemente notar cómo, cuando se quieren introducir instrucciones más complejas,
+se vuelve prácticamente necesario tener un banco de registros inout conectados al bus interno. Es posible que ingeniandoselas bastante sea posible,
+sin modificar la microarquitectura propuesta, implementar la instrucción usando nada más que la memoria externa.
+En cualquier caso creo que la idea sería agregar un banco de registros de 12 bits, en el caso particular de LROT para llevar una cuenta de la cantidad de bits ya rotados.
+
+7.
+RTL:
+MAR := PC
+MEM_READ
+IR := MDR
+PC_inc
+PC := AUX
+
+8.a.
+
+Sería necesario agregar:
+- Registro PC out de 32 bits conectado a bus interno.
+- Memoria de palabras de 32 bits con direccionamiento a byte.
+- Memoria conectada a bus interno mediante bus externo y controlador de bus con MAR in y MDR inout, ambos de 32 bits, ambos conectados a bus interno (similar a ej. 2).
+- Registros para decoding de instrucciones IR0 e IR1 inout de 32 bits conectados a bus interno. 
+- Señales para lectura y escritura de registros en base a IR0: RB_inSelect=0, 1 o 2 (0 usa IR0[20:14], 1 usa IR0[13:7] y 2 usa IR0[6:0]), idem para selectOut.
+No sería necesario pero sí muy conveniente agregar:
+- Componente que permite incremetar PC de a 4, independiente de la ALU, conectado al registro PC.
+
+8.b.
+RB_enOut inv_enIn RB_outSelect=1
+INV_not /* asumo que esta es la señal de activación de la operación de invertir/negar inv_in y colocar el resultado en alu_i2 */
+RB_enOut alu_enIn1 RB_outSelect=0 /* obs.: alu_in1 es la señal de control para permitir entrada al registro alu_i1 */
+ALU_xor
+RB_enIn alu_enOut RB_inSelect=2
+reset_microOp
+
+8.c.
+RTL:
+MAR := PC
+MEM_READ
+IR0 := MDR
+PC_inc4
+PC := AUX
+IF IR0[31] = 1
+    MAR := PC
+    MEM_READ
+    IR1 := MDR
+    PC_inc4
+    PC := AUX
+
+9.a.i.
+IR_enOutADDR MEM_ADDR_enIn IR_outSelect=1 /* IR_outSelect=0 deja salir IR[13:7] al bus A, IR_outSelect=1 deja salir IR[6:0] */
+MEM_READ
+MEM_DATA_enOut ALU_enInB
+IR_enOutADDR MEM_ADDR_enIn IR_outSelect=0
+MEM_READ
+MEM_DATA_enOut ALU_enInA
+ALU_add
+ZF_enIn ALU_Z_enOut
+MEM_DATA_enIn ALU_out
+MEM_WRITE
+reset_microOp
+
+9.a.ii.
+BEQ_microOp load_microOp /* asumo funcionamiento de estas señales de control y componentes asociados idéntica a la vista para "Orga 1 Small" en clase */
+reset_microOp /* Esta es la microoperación salteada si ZF = 1 */
+IR_enOutADDR PC_load IR_outSelect=0 /* PC_load es la señal enIn del registro PC */
+reset_microOp
+
+9.b. /* Duda: Tanto acá como en 8.c. asumo que al pedir datos a memoria se recupera la palabra completa, y que no hacen falta  múltiples accesos a memoria para una sola palabra. ¿Es así? */
+RTL:
+MEM_ADDR := PC /* MEM_ADDR = MAR */
+MEM_READ
+IR := MEM_DATA /* MEM_DATA = MDR */
+PC_inc
+PC := AUX
+PC_inc
+PC := AUX
+
+9.c.
+Bus interno A mínimo 7 bits (las direcciones de memoria son de 7 bits)
+Bus interno B mínimo 16 bits (los datos/palabras son de 16 bits, 2 "celdas" de memoria de 1 byte cada una)
