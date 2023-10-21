@@ -1,0 +1,9 @@
+     |00| SET R1 , 0x00
+     |02| SET R2 , 0x00
+     |04| SET R3 , 0x01
+loop |06| ADD R1 , R0
+     |08| SUB R0 , R3
+     |0a| CMP R0 , R2
+     |0c| JZ halt
+     |0e| JMP loop
+halt |10| JMP halt
