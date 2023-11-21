@@ -1,0 +1,18 @@
+Aunque el enunciado no lo explicita (aunque sí en el código en C)
+asumí que, nuevamente, la longitud de los vectores input es siempre 12.
+Caso contrario, de permitirse que los vectores tengan otros largos,
+se podría haber agregado un tercer parámetro a la función en a2
+y la linea li t0, 12 haberse reemplazado por mv t0, a2.
+
+Como en este caso no fue necesario llamar a ninguna subrutina dentro de or_384bit,
+no fue necesario tampoco almacenar los inputs, outputs o a la ra en saved registers.
+
+Llamé a la función or_384bit porque, más que como vectores,
+puede pensarse a los inputs como números de 32*12 = 384 bits
+sobre los que se aplica un bitwise or.
+
+Para el input dado, el resultado obtenido es el correcto.
+Esto se verifico compilando el programa en C dado por enunciado.
+
+Una explicación más detallada, instrucción a instrucción, 
+se provee en forma de comentarios en el código.

@@ -1,0 +1,18 @@
+La solución usa la función es_par implementada en clase.
+
+Debido a que dentro de sumar_pares se realizan llamados a es_par, 
+es necesario guardar ciertos valores de importancia en registros que por convención 
+no deberían ser modificados (y efectivamente no lo son) por es_par, los saved registers.
+
+Estos valores de importancia son los inputs a sumar_pares,
+el resultado a ser calculado de manera cumulativa,
+y el return address a main (el registro ra es sobreescrito en cada instrucción call).
+
+Para el input dado, el resultado obtenido es el correcto:
+0x44444444 + 0x55444444 + 0xffffff00 = 0x99888788
+El resto de los valores del vector son impares; 
+terminan en el nibble f, 5, 3 o 1, que a su vez terminan en el bit 1.
+El resultado fue además verificado compilando el programa en C dado por enunciado.
+
+Una explicación más detallada, instrucción a instrucción, 
+se provee en forma de comentarios en el código.
