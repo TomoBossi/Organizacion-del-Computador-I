@@ -1,0 +1,25 @@
+SENSOR (interrupcion): Interrupcion por curva cerca, interrupcion por curva superada
+
+MOTOR (polling): En el loop del programa, se escribe 0x0C o 0x0F a la posición 0xF0 según el estado del programa (0x0C curva cerca, 0x0F curva superada)
+
+BOCINA en dirección 0xF1. Comienza en valor 0x02, incrementa en 1 cada 32 (0x20) curvas atravesadas con éxito, contadas en un registro.
+
+while (True) do
+    if (estado == curva) then do
+        M[0xF0] = 0x0C
+    else do
+    	M[0xF0] = 0x0F
+endwhile;
+
+RAI:
+if (curva_cerca) then do
+    estado := curva
+endif;
+if (curva_atravesada && estado == curva) then do
+    estado := superada
+    cantidas_curvas += 1
+    if (cantidad_curvas == 32) then do
+        cantidad_curvas = 0
+        intensidad_bocina += 1
+        estado := normal
+endif;

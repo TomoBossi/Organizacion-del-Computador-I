@@ -1,0 +1,26 @@
+            |00| SET R0 , rai
+            |02| STR [ 0x00 ] , R0
+            |04| SET R1 , 0x02
+            |06| STR [ 0xF1 ] , R1
+            |08| SET R2 , 0x00
+            |0a| SET R3 , 0x0F
+            |0c| SET R4 , 0x0F
+            |0e| SET R6 , 0x0C
+            |10| SET R7 , 0x02
+            |12| SET R5 , 0x20
+            |14| STI
+       loop |16| STR [ 0xF0 ] , R3
+            |18| JMP loop
+        rai |1a| CMP R3 , R4
+            |1c| JZ curva_cerca
+            |1e| SET R3 , 0x0F
+            |20| INC R2
+            |22| CMP R2 , R5
+            |24| JZ treintaydos
+            |26| JMP fin_rai
+treintaydos |28| SET R2 , 0x00
+            |2a| INC R1
+            |2c| STR [ 0xF1 ] , R1
+            |2e| JMP fin_rai
+curva_cerca |30| SET R3 , 0x0C
+    fin_rai |32| IRET

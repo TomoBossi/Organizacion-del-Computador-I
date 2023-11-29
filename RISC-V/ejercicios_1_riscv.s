@@ -19,7 +19,7 @@ es_par: # a0 = if (old(a0)%2 == 0) then 1 else 0
     ret
 
 sumar_pares:
-    mv s0, ra # return address
+    mv s0, ra # return address # mal uso de saved registers!
     mv s1, a0 # posicion en memoria del vector
     li s2, 12 # cantidad de elementos hardcodeada
     mv s3, x0 # resultado inicializado en 0
